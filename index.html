@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <!-- ... (todo el <head> como antes) ... -->
+  <meta charset="UTF-8">
+  <title>Porto Seguro Tetris</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <style>
+    /* ... (todo el <style> como antes) ... */
+    body { margin: 0; padding: 0; background-color: #00BCD4; font-family: sans-serif; text-align: center; color: white; }
+    #main-container { padding-bottom: 80px; }
+    #game-container { display: inline-block; margin-top: 5px; position: relative; }
+    canvas { display: block; background-image: url('cian_car300x600.jpg'); background-size: cover; max-width: 100%; height: auto; max-height: 80vh; margin: 0 auto; }
+    #logo { width: 180px; max-width: 60%; margin-top: 10px; margin-bottom: 5px; }
+    #cta { font-size: 14px; color: white; padding: 10px; max-width: 90%; margin: 5px auto; line-height: 1.3; }
+     #score { font-size: 18px; margin-top: 8px; font-weight: bold; }
+     #controls-button { margin-top: 8px; padding: 5px 10px; font-size: 14px; cursor: pointer; }
+     .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+     .modal-content { background-color: #fefefe; color: #333; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 400px; border-radius: 8px; position: relative; }
+     .modal-content h2 { margin-top: 0; color: #00796B; }
+     .modal-content ul { list-style: none; padding: 0; }
+      .modal-content li { margin-bottom: 8px; }
+     .close-button { position: absolute; top: 10px; right: 15px; color: #aaa; font-size: 28px; font-weight: bold; cursor: pointer; }
+     .close-button:hover, .close-button:focus { color: black; text-decoration: none; }
+     #game-over { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: rgba(0, 0, 0, 0.8); color: white; padding: 25px 45px; border-radius: 10px; font-size: 22px; font-weight: bold; display: none; z-index: 10; text-align: center; }
+      #restart-button { display: block; margin-top: 15px; padding: 10px 20px; font-size: 16px; font-weight: bold; color: #333; background-color: #FFEB3B; border: none; border-radius: 5px; cursor: pointer; }
+     #restart-button:hover { background-color: #FDD835; }
+     #touch-controls { position: fixed; bottom: 0; left: 0; width: 100%; background-color: rgba(0, 0, 0, 0.3); padding: 8px 5px; box-sizing: border-box; display: flex; justify-content: space-around; align-items: center; z-index: 50; user-select: none; -webkit-user-select: none; -moz-user-select: none; -ms-user-select: none; }
+    .touch-button { padding: 12px 15px; font-size: 18px; background-color: rgba(255, 255, 255, 0.7); color: #333; border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; cursor: pointer; min-width: 45px; text-align: center; font-weight: bold; }
+    .touch-button:active { background-color: rgba(200, 200, 200, 0.8); }
+    .controls-group { display: flex; gap: 10px; }
+  </style>
+</head>
+<body>
+    <!-- ... (todo el <body> como antes: logo, game-container, canvas, score, cta, modal, touch-controls) ... -->
+<div id="main-container">
+  <img id="logo" src="DISPLAY_PORTO_Asset 2_.png" alt="Porto Seguro Logo">
+  <div id="game-container">
+      <canvas id="tetris"></canvas> <!-- Quitamos width/height fijos aquí -->
+      <div id="game-over">
+          ¡Juego Terminado!
+          <button id="restart-button">Volver a Jugar</button>
+      </div>
+  </div>
+   <div id="score">Puntuación: 0</div>
+   <button id="controls-button">Controles</button>
+  <div id="cta">
+    ¡Juega y protege tu auto!<br>
+    En nuestros 30 años, te invitamos a celebrar con nosotros<br>
+    y a proteger tu auto del modo más fácil.<br>
+    Asegurá el tuyo hoy con Porto Seguro.
+  </div>
+</div>
+<div id="controls-modal" class="modal">
+  <div class="modal-content">
+    <span class="close-button" id="close-modal-button">&times;</span>
+    <h2>Controles del Juego</h2>
+    <h3>Teclado:</h3>
+    <ul>
+      <li><strong>←:</strong> Mover Izquierda</li>
+      <li><strong>→:</strong> Mover Derecha</li>
+      <li><strong>↓:</strong> Bajar Pieza</li>
+      <li><strong>↑ / E:</strong> Rotar Derecha</li>
+      <li><strong>Q:</strong> Rotar Izquierda</li>
+    </ul>
+    <hr>
+    <h3>Móvil:</h3>
+    <ul>
+      <li><strong>&lt;</strong> Mover Izquierda</li>
+      <li><strong>&gt;</strong> Mover Derecha</li>
+      <li><strong>V</strong> Bajar Pieza</li>
+      <li><strong>↺ (Q):</strong> Rotar Izquierda</li>
+      <li><strong>↻ (E):</strong> Rotar Derecha</li>
+    </ul>
+  </div>
+</div>
+<div id="touch-controls">
+    <div class="controls-group"><button class="touch-button" id="btn-rotate-left">↺</button></div>
+     <div class="controls-group"><button class="touch-button" id="btn-left">&lt;</button><button class="touch-button" id="btn-down">V</button><button class="touch-button" id="btn-right">&gt;</button></div>
+     <div class="controls-group"><button class="touch-button" id="btn-rotate-right">↻</button></div>
+</div>
+
+  <script>
+    const canvas = document.getElementById("tetris");
+    const context = canvas.getContext("2d");
+    // const scale = 30; // La escala ahora es dinámica
+
+    let arenaWidth;
+    let arenaHeight;
+    let currentScale; // Hacer la escala global para usarla en draw
+
+    function resizeCanvas() {
+        // ... (función resizeCanvas como antes, asegurándose que define arenaWidth, arenaHeight y currentScale globalmente) ...
+        const viewHeight = window.innerHeight;
+        const viewWidth = window.innerWidth;
+        const availableHeight = viewHeight * 0.65; // Ajusta este valor si es necesario
+        const availableWidth = viewWidth * 0.9;
+
+        let newHeight = Math.min(availableHeight, availableWidth * 2); // Mantener proporción 1:2
+        let newWidth = newHeight / 2;
+
+        newWidth = Math.max(newWidth, 150); // Ancho mínimo
+        newHeight = newWidth * 2;
+
+        canvas.style.width = `${newWidth}px`;
+        canvas.style.height = `${newHeight}px`;
+        canvas.width = newWidth; // Resolución interna
+        canvas.height = newHeight;
+
+        const logicalWidth = 10; // Ancho lógico deseado (10 bloques)
+        currentScale = canvas.width / logicalWidth; // Calcular y guardar escala global
+        context.scale(currentScale, currentScale); // Aplicar escala inicial (se resetea en draw)
+
+        arenaWidth = logicalWidth; // Ancho lógico
+        arenaHeight = Math.floor(canvas.height / currentScale); // Alto lógico calculado
+
+         console.log(`Resized: Canvas ${canvas.width}x${canvas.height}, Scale: ${currentScale}, Arena: ${arenaWidth}x${arenaHeight}`); // Debug
+
+        // Si el juego ya está corriendo, redibujar
+        if (animationFrameId) { draw(); }
+    }
+
+
+    const colors = [ /* ... Colores como antes ... */
+        null, 'rgba(255, 64, 129, 0.5)', 'rgba(255, 235, 59, 0.5)', 'rgba(255, 152, 0, 0.5)',
+        'rgba(33, 150, 243, 0.5)', 'rgba(0, 188, 212, 0.5)', 'rgba(76, 175, 80, 0.5)', 'rgba(244, 67, 54, 0.5)',
+    ];
+    const pieceTypes = 'TJLOSZI';
+
+    // (Resto de variables globales: arena, player, scoreElement, etc. como antes)
+    let arena;
+    const player = { pos: { x: 0, y: 0 }, matrix: null, score: 0 };
+    const scoreElement = document.getElementById('score');
+    const gameOverElement = document.getElementById('game-over');
+    const restartButton = document.getElementById('restart-button');
+    const controlsButton = document.getElementById('controls-button');
+    const controlsModal = document.getElementById('controls-modal');
+    const closeModalButton = document.getElementById('close-modal-button');
+    let isGameOver = false;
+    let dropCounter = 0;
+    let dropInterval = 1000;
+    let lastTime = 0;
+    let animationFrameId = null;
+
+    // (Todas las funciones del juego: createPiece, createMatrix, adjustColor, drawMatrix, merge, collide, etc. como antes)
+    function createPiece(type) { /* ... como antes ... */
+        if(type === 'T') return [[0,0,0],[1,1,1],[0,1,0]];
+        else if(type === 'O') return [[2,2],[2,2]];
+        else if(type === 'L') return [[0,3,0],[0,3,0],[0,3,3]];
+        else if(type === 'J') return [[0,4,0],[0,4,0],[4,4,0]];
+        else if(type === 'I') return [[0,5,0,0],[0,5,0,0],[0,5,0,0],[0,5,0,0]];
+        else if(type === 'S') return [[0,6,6],[6,6,0],[0,0,0]];
+        else if(type === 'Z') return [[7,7,0],[0,7,7],[0,0,0]];
+     }
+     function createMatrix(width, height) { /* ... como antes ... */
+        const matrix = []; height = Math.max(0, Math.floor(height));
+        while (height--) { matrix.push(new Array(Math.max(0, Math.floor(width))).fill(0)); } return matrix;
+     }
+     function adjustColor(rgbaColor, amount) { /* ... como antes ... */
+         if (!rgbaColor) return null; try { let [r, g, b, a] = rgbaColor.match(/\d+(\.\d+)?/g).map(Number); r = Math.max(0, Math.min(255, r + amount)); g = Math.max(0, Math.min(255, g + amount)); b = Math.max(0, Math.min(255, b + amount)); return `rgba(${r},${g},${b},${a !== undefined ? a : 1})`; } catch (e) { console.error("Error adjusting color:", rgbaColor, e); return rgbaColor; }
+     }
+     function drawMatrix(matrix, offset) { /* ... como antes ... */
+        if (!matrix) return; matrix.forEach((row, y) => { row.forEach((value, x) => { if (value !== 0) { const color = colors[value]; if (!color) return; const lighterColor = adjustColor(color, 40); const darkerColor = adjustColor(color, -40); context.fillStyle = color; context.fillRect(x + offset.x, y + offset.y, 1, 1); context.lineWidth = 0.06; context.strokeStyle = lighterColor; context.beginPath(); context.moveTo(x + offset.x, y + offset.y + 1); context.lineTo(x + offset.x, y + offset.y); context.lineTo(x + offset.x + 1, y + offset.y); context.stroke(); context.strokeStyle = darkerColor; context.beginPath(); context.moveTo(x + offset.x, y + offset.y + 1); context.lineTo(x + offset.x + 1, y + offset.y + 1); context.lineTo(x + offset.x + 1, y + offset.y); context.stroke(); } }); });
+     }
+     function merge(arena, player) { /* ... como antes ... */
+        if (!player.matrix) return; player.matrix.forEach((row, y) => { row.forEach((value, x) => { if (value !== 0) { const targetY = y + player.pos.y; const targetX = x + player.pos.x; if (targetY >= 0 && targetY < arenaHeight && targetX >= 0 && targetX < arenaWidth) { if (arena[targetY] !== undefined) { arena[targetY][targetX] = value; } } } }); });
+     }
+     function collide(arena, player) { /* ... como antes ... */
+        if (!player.matrix) return false; const [m, o] = [player.matrix, player.pos]; for (let y = 0; y < m.length; ++y) { for (let x = 0; x < m[y].length; ++x) { if (m[y][x] !== 0) { const checkX = x + o.x; const checkY = y + o.y; if (checkX < 0 || checkX >= arenaWidth || checkY >= arenaHeight) return true; if (checkY >= 0 && arena[checkY] && arena[checkY][checkX] !== 0) return true; } } } return false;
+     }
+     function arenaSweep() { /* ... como antes ... */
+        let rowCount = 1; outer: for (let y = arenaHeight - 1; y >= 0; --y) { if (!arena[y]) continue; for (let x = 0; x < arenaWidth; ++x) { if (arena[y][x] === 0) continue outer; } const row = arena.splice(y, 1)[0].fill(0); arena.unshift(row); ++y; player.score += rowCount * 10; rowCount *= 2; } scoreElement.innerText = `Puntuación: ${player.score}`;
+     }
+     function playerReset() { /* ... como antes ... */
+        if (isGameOver) return; const randomType = pieceTypes[Math.floor(Math.random() * pieceTypes.length)]; player.matrix = createPiece(randomType); player.pos.y = 0; player.pos.x = Math.floor(arenaWidth / 2) - Math.floor(player.matrix[0].length / 2); if (collide(arena, player)) { console.log("Game Over"); isGameOver = true; gameOverElement.style.display = 'block'; } else { gameOverElement.style.display = 'none'; }
+     }
+     function playerDrop() { /* ... como antes ... */
+        if (isGameOver) return; player.pos.y++; if (collide(arena, player)) { player.pos.y--; merge(arena, player); playerReset(); arenaSweep(); } dropCounter = 0;
+     }
+     function playerMove(dir) { /* ... como antes ... */
+        if (isGameOver) return; player.pos.x += dir; if (collide(arena, player)) { player.pos.x -= dir; }
+     }
+     function rotate(matrix, dir) { /* ... como antes ... */
+        for(let y=0;y<matrix.length;++y){for(let x=0;x<y;++x){[matrix[x][y],matrix[y][x]]=[matrix[y][x],matrix[x][y]];}} if(dir>0){matrix.forEach(row=>row.reverse());}else{matrix.reverse();}
+     }
+     function playerRotate(dir) { /* ... como antes ... */
+        if (isGameOver || !player.matrix) return; const pos = player.pos.x; let offset = 1; const originalMatrix = JSON.parse(JSON.stringify(player.matrix)); rotate(player.matrix, dir); while (collide(arena, player)) { player.pos.x += offset; offset = -(offset + (offset > 0 ? 1 : -1)); const maxOffsetCheck = player.matrix[0] ? player.matrix[0].length : 2; if (Math.abs(offset) > maxOffsetCheck) { player.matrix = originalMatrix; player.pos.x = pos; console.log("Rotation reverted"); return; } }
+     }
+     function draw() { /* ... como antes ... */
+        context.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+        context.scale(currentScale, currentScale); // Apply current scale
+        context.clearRect(0, 0, arenaWidth, arenaHeight); // Clear logical area
+        drawMatrix(arena, { x: 0, y: 0 });
+        if (!isGameOver) { drawMatrix(player.matrix, player.pos); }
+     }
+     function update(time = 0) { /* ... como antes ... */
+        if (isGameOver) { draw(); return; } const deltaTime = time - lastTime; lastTime = time; dropCounter += deltaTime; if (dropCounter > dropInterval) { playerDrop(); } draw(); animationFrameId = requestAnimationFrame(update);
+     }
+     function startGame() { /* ... como antes ... */
+        isGameOver = false; gameOverElement.style.display = 'none'; arena = createMatrix(arenaWidth, arenaHeight); player.score = 0; scoreElement.innerText = `Puntuación: ${player.score}`; playerReset(); if (animationFrameId) { cancelAnimationFrame(animationFrameId); } lastTime = performance.now(); dropCounter = 0; update();
+     }
+
+    // --- Event Listeners ---
+    document.addEventListener("keydown", event => { /* ... como antes ... */
+         if (isGameOver) { if (event.key === 'Enter') startGame(); return; }
+         if (event.key === "ArrowLeft") playerMove(-1); else if (event.key === "ArrowRight") playerMove(1); else if (event.key === "ArrowDown") playerDrop(); else if (event.key === "ArrowUp" || event.key.toLowerCase() === 'e') playerRotate(1); else if (event.key.toLowerCase() === 'q') playerRotate(-1);
+    });
+    restartButton.addEventListener('click', startGame);
+    controlsButton.addEventListener('click', () => { controlsModal.style.display = 'block'; });
+    closeModalButton.addEventListener('click', () => { controlsModal.style.display = 'none'; });
+    window.addEventListener('click', (event) => { if (event.target == controlsModal) { controlsModal.style.display = 'none'; } });
+    const btnLeft = document.getElementById('btn-left'); /* ... (resto de botones táctiles) ... */
+    const btnRight = document.getElementById('btn-right'); const btnDown = document.getElementById('btn-down'); const btnRotateLeft = document.getElementById('btn-rotate-left'); const btnRotateRight = document.getElementById('btn-rotate-right');
+    btnLeft.addEventListener('touchstart', (e) => { e.preventDefault(); playerMove(-1); }, { passive: false }); /* ... (resto de listeners táctiles) ... */
+    btnRight.addEventListener('touchstart', (e) => { e.preventDefault(); playerMove(1); }, { passive: false });
+    btnDown.addEventListener('touchstart', (e) => { e.preventDefault(); playerDrop(); }, { passive: false });
+    btnRotateLeft.addEventListener('touchstart', (e) => { e.preventDefault(); playerRotate(-1); }, { passive: false });
+    btnRotateRight.addEventListener('touchstart', (e) => { e.preventDefault(); playerRotate(1); }, { passive: false });
+
+
+    // --- Inicialización Segura Después de Cargar el DOM ---
+    document.addEventListener('DOMContentLoaded', (event) => {
+        console.log("DOM fully loaded and parsed. Initializing game.");
+        resizeCanvas(); // 1. Establecer tamaño inicial y dimensiones lógicas
+        startGame();    // 2. Iniciar la lógica y el bucle del juego
+    });
+
+    // Mantener los listeners de resize/orientationchange fuera
+    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('orientationchange', resizeCanvas);
+
+  </script>
+</body>
+</html>
